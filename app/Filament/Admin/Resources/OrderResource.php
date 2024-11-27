@@ -6,6 +6,7 @@ use App\Filament\Admin\Resources\OrderResource\Pages;
 use App\Filament\Admin\Resources\OrderResource\RelationManagers;
 use App\Models\Order;
 use Filament\Forms;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -23,7 +24,8 @@ class OrderResource extends Resource
     {
         return $form
             ->schema([
-                //
+                Section::make()
+                ->schema(static::getFormSchema()),
             ]);
     }
 

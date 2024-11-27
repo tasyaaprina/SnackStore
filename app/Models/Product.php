@@ -16,6 +16,11 @@ class Product extends Model
         'description',
         'image',
         'stock',
+        'backorder',
+        'requires_shipping',
+        'published_at',
+        'is_visible',
+        'slug',
     ];
 
     // Relasi dengan model Category
