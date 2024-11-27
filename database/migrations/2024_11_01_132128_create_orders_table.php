@@ -14,11 +14,14 @@ return new class extends Migration
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->uuid('unique_id')->unique(); // Add the unique_id field
-            $table->date('date');
-            $table->decimal('total_price', 10, 2)->nullable();
-            $table->enum('status', ['pending', 'processed', 'sent', 'completed', 'canceled'])->default('pending');
+            $table->string('number', 32)->unique();
+            $table->decimal('total_price', 12, 2)->nullable();
+            $table->enum('status', ['new', 'processing', 'shipped', 'delivered', 'canceled'])->default('new');
+            $table->decimal('shipping_price')->nullable();
+            $table->string('shipping_method')->nullable();
+            $table->string('notes')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
