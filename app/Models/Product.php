@@ -16,6 +16,11 @@ class Product extends Model
         'description',
         'image',
         'stock',
+        'backorder',
+        'requires_shipping',
+        'published_at',
+        'is_visible',
+        'slug',
     ];
 
     // Relasi dengan model Category
@@ -27,13 +32,7 @@ class Product extends Model
     // Relasi dengan model OrderDetail (purchase details)
     public function purchaseDetails()
     {
-        return $this->hasMany(OrderDetail::class, 'product_id');
-    }
-
-    // Relasi dengan model StockInDetail (stock in details)
-    public function stockInDetails()
-    {
-        return $this->hasMany(StockInDetail::class, 'product_id');
+        return $this->hasMany(OrderItem::class, 'product_id');
     }
 
     // Akses Custom: Mendapatkan Harga dalam Format Rupiah

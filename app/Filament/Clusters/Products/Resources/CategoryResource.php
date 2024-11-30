@@ -2,12 +2,13 @@
 
 namespace App\Filament\Clusters\Products\Resources;
 
-use Illuminate\Support\Str;
 use Filament\Forms;
 use Filament\Tables;
+use App\Models\Product;
 use App\Models\Category;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 use Filament\Resources\Resource;
 use App\Filament\Clusters\Products;
 use Filament\Forms\Components\Textarea;
@@ -23,8 +24,11 @@ use App\Filament\Clusters\Products\Resources\CategoryResource\RelationManagers;
 use App\Filament\Clusters\Products\Resources\CategoryResource\Pages\EditCategory;
 use App\Filament\Clusters\Products\Resources\CategoryResource\Pages\CreateCategory;
 use App\Filament\Clusters\Products\Resources\CategoryResource\Pages\ListCategories;
-use Filament\Forms\Components\Card;
-
+use App\Filament\Clusters\Products\Resources\CategoryResource\RelationManagers\ProductsRelationManager;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\MarkdownEditor;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Set;
 
 class CategoryResource extends Resource
 {
@@ -39,22 +43,25 @@ class CategoryResource extends Resource
     {
         return $form
             ->schema([
-                Card::make()
+                Section::make()
                     ->schema([
-                        TextInput::make('name')
-                            ->required()
-                            ->maxLength(50)
-                            ->reactive() // Make the field reactive
-                            ->afterStateUpdated(
-                                fn(callable $set, $state) =>
-                                $set('slug', Str::slug($state)) // Generate slug from name
-                            ),
-                        TextInput::make('slug')
-                            ->required()
-                            ->maxLength(50)
-                            ->dehydrateStateUsing(fn($state) => Str::slug($state)), // Ensure slug format on save
-                        Textarea::make('description')
-                            ->columnSpanFull(),
+                        Grid::make()
+                            ->schema([
+                                TextInput::make('name')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(fn (string $operation, $state, Set $set) => $operation === 'create' ? $set('slug', Str::slug($state)) : null),
+
+                                TextInput::make('slug')
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->unique(Category::class, 'slug', ignoreRecord: true),
+                            ]),
+                            MarkdownEditor::make('description')
+                                ->label('Description')
                     ])
             ]);
     }
@@ -92,7 +99,7 @@ class CategoryResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            // 
         ];
     }
 
