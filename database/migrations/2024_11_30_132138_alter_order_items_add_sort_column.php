@@ -11,12 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('stock_ins', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('supplier_id')->constrained()->onDelete('cascade');
-            $table->date('date');
-            $table->decimal('total_price', 10, 2)->nullable();
-            $table->timestamps();
+        Schema::table('order_items', function (Blueprint $table) {
+            $table->unsignedInteger('sort')->default(0)->after('id');
         });
     }
 
@@ -25,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('stock_ins');
+        Schema::table('order_items', function (Blueprint $table) {
+            $table->dropColumn('sort');
+        });
     }
 };
