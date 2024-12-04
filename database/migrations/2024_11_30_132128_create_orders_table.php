@@ -17,9 +17,11 @@ return new class extends Migration
             $table->string('number', 32)->unique();
             $table->decimal('total_price', 12, 2)->nullable();
             $table->enum('status', ['new', 'processing', 'shipped', 'delivered', 'canceled'])->default('new');
+            $table->foreignId('province_id')->constrained('provinces')->onDelete('cascade');
+            $table->string('address')->nullable();
+            $table->string('city')->nullable();
             $table->decimal('shipping_price')->nullable();
-            $table->string('shipping_method')->nullable();
-            $table->string('notes')->nullable();
+            $table->text('notes')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
