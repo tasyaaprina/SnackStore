@@ -4,9 +4,18 @@
             {{ $product->name }}
         </h2>
     </x-slot>
-
-    <div class="py-12">
+   
+    <div class="py-2">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="mb-4">
+                <!-- Tombol Kembali -->
+                <a href="{{ url('dashboard') }}" class="inline-block bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-600">
+                    <i class="fa fa-arrow-left mr-2"></i> Kembali
+                </a>
+                
+
+        </div>
+            </div>
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Bagian Gambar -->
@@ -24,20 +33,24 @@
                             <p class="text-gray-600 dark:text-gray-400 mb-2">
                                 <span class="font-bold">Stok:</span> {{ $product->stock }}
                             </p>
-                            <p class="text-gray-600 dark:text-gray-400 mb-2">
-                                <span class="font-bold">Kategori:</span> {{ $product->category_id }}
-                            </p>
+                            <!-- Menampilkan Nama Kategori -->
+                        <p class="text-gray-600 dark:text-gray-400 mb-2">
+                            <span class="font-bold">Kategori:</span> {{ $product->category->name }}
+                        </p>
                             <p class="text-gray-800 dark:text-gray-300 font-bold text-lg mb-4">
                                 <span class="font-bold">Harga:</span> {{ $product->formatted_price }}
                             </p>
                         </div>
-                        
-                        <!-- Tombol Pesan -->
-                        <div class="mt-6">
-                            <a href="#" class="block bg-blue-500 text-white text-center font-bold text-lg px-6 py-3 rounded-lg shadow hover:bg-blue-600">
-                                <i class="fa fa-shopping-cart mr-2"></i> Pesan Sekarang
-                            </a>
-                        </div>
+                            <form method="POST" action="{{ route('cekout.add', $product->id) }}">
+                            @csrf
+                            <div class="mb-4">
+                                <label for="jumlah_pesan" class="block text-gray-700 dark:text-gray-400 font-medium">Jumlah Pesan</label>
+                                <input type="number" id="jumlah_pesan" name="quantity" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-blue-200 dark:bg-gray-700 dark:text-white" min="1" max="{{ $product->stock }}" value="1" required>
+                            </div>
+                            <button type="submit" class="block bg-blue-500 text-white text-center font-bold text-lg px-6 py-3 rounded-lg shadow hover:bg-blue-600">
+                                <i class="fa fa-shopping-cart mr-2"></i> Masukkan Keranjang
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
