@@ -1,140 +1,203 @@
 <?php
+
 namespace App\Http\Controllers;
 
-use App\Product;
-use App\Order;
-use App\User;
-use App\OrderDetail;
-use Auth;
-use Alert;
-use Carbon\Carbon;
+use App\Models\Order;
+use App\Models\Cart;
+use App\Models\OrderDetail;
+use App\Models\OrderItem;
+use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class PesanController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
+    public function index()
+{
+    // Ambil produk yang ada di keranjang pengguna
+    $cartItems = Cart::where('user_id', Auth::id())->get();
+
+    // Hitung subtotal berdasarkan produk dan jumlah dalam keranjang
+    $subtotal = $cartItems->sum(function($item) {
+        return $item->product->price * $item->quantity;
+    });
+
+    // Tentukan biaya pengiriman tetap (dapat disesuaikan)
+    $shippingCost = 50000;
+
+    // Hitung total harga dengan menambahkan biaya pengiriman
+    $total = $subtotal + $shippingCost;
+
+    // Kirim data ke view
+    return view('checkout.index', compact('cartItems', 'subtotal', 'shippingCost', 'total'));
+}
+
+public function checkout()
+{
+    // Ambil produk dalam keranjang untuk user yang sedang login
+    $cartItems = Cart::where('user_id', Auth::id())->get();
+
+    // Hitung subtotal dan total harga
+    $subtotal = $cartItems->sum(function($item) {
+        return $item->product->price * $item->quantity;
+    });
+
+    $shippingCost = 50000; // Biaya pengiriman tetap
+    $total = $subtotal + $shippingCost;
+
+    return view('checkout.index', compact('cartItems', 'subtotal', 'shippingCost', 'total'));
+}
+
+    public function add(Request $request, $productId)
+{
+    // Validasi input
+    $request->validate([
+        'quantity' => 'required|integer|min:1',
+    ]);
+
+    // Cari produk berdasarkan ID
+    $product = Product::findOrFail($productId);
+
+    // Periksa apakah produk sudah ada di keranjang user
+    $existingCartItem = Cart::where('user_id', Auth::id())
+        ->where('product_id', $productId)
+        ->first();
+
+    if ($existingCartItem) {
+        // Jika produk sudah ada, tambahkan jumlahnya
+        $existingCartItem->update([
+            'quantity' => $existingCartItem->quantity + $request->quantity,
+            'price' => $product->price * ($existingCartItem->quantity + $request->quantity),
+        ]);
+    } else {
+        // Jika belum, tambahkan produk ke tabel carts
+        Cart::create([
+            'user_id' => Auth::id(),
+            'product_id' => $productId,
+            'quantity' => $request->quantity,
+            'price' => $product->price * $request->quantity,
+        ]);
     }
 
-    public function index($id)
+        return redirect()->route('cart.index')->with('success', 'Produk berhasil ditambahkan ke keranjang!');
+    }
+    public function cart()
     {
-        $product = Product::where('id', $id)->first();
+        $cartItems = Cart::where('user_id', Auth::id())->get(); // Ambil produk di keranjang untuk user yang sedang login
 
-        return view('pesan.index', compact('product'));
+        return view('index', compact('cartItems'));
     }
 
-    public function addToCart(Request $request, $id)
+    public function updateCart(Request $request, $productId)
     {
-        $product = Product::where('id', $id)->first();
-        $currentDate = Carbon::now();
+        $request->validate([
+            'quantity' => 'required|integer|min:1',
+        ]);
 
-        // Validasi apakah jumlah yang dipesan melebihi stok
-        if ($request->quantity > $product->stock) {
-            return redirect('pesan/'.$id);
+        $quantity = $request->input('quantity');
+
+        // Get the user's active order (the one with status 0)
+        $pesanan_utama = Order::where('user_id', Auth::user()->id)
+            ->where('status', 0) // Pending orders only
+            ->firstOrFail();
+
+        // Check if the product exists in the order details
+        $orderDetail = OrderItem::where('order_id', $pesanan_utama->id)
+            ->where('product_id', $productId)
+            ->first();
+
+        if (!$orderDetail) {
+            throw ValidationException::withMessages([
+                'product' => 'This product is not in your cart.',
+            ]);
         }
 
-        // Cek apakah pengguna sudah memiliki pesanan yang belum selesai
-        $existingOrder = Order::where('user_id', Auth::user()->id)->where('status', 0)->first();
-
-        // Jika tidak ada pesanan yang belum selesai, buat pesanan baru
-        if (empty($existingOrder)) {
-            $order = new Order;
-            $order->user_id = Auth::user()->id;
-            $order->number = mt_rand(100000, 999999);
-            $order->total_price = 0;
-            $order->status = 0; // 0 = belum selesai
-            $order->save();
+        // Check if the requested quantity is available in stock
+        $product = Product::findOrFail($productId);
+        if ($product->stock < $quantity) {
+            throw ValidationException::withMessages([
+                'quantity' => 'Requested quantity exceeds stock.',
+            ]);
         }
 
-        // Ambil pesanan yang baru saja dibuat
-        $newOrder = Order::where('user_id', Auth::user()->id)->where('status', 0)->first();
+        // Update the quantity and price
+        $orderDetail->update([
+            'quantity' => $quantity,
+            'price' => $product->price * $quantity,
+        ]);
 
-        // Cek apakah produk sudah ada di dalam pesanan detail
-        $existingOrderDetail = OrderDetail::where('product_id', $product->id)->where('order_id', $newOrder->id)->first();
+        // Update the total price of the order
+        $this->updateOrderTotal($pesanan_utama);
 
-        if (empty($existingOrderDetail)) {
-            // Jika produk belum ada, tambahkan produk ke pesanan detail
-            $orderDetail = new OrderDetail;
-            $orderDetail->product_id = $product->id;
-            $orderDetail->order_id = $newOrder->id;
-            $orderDetail->quantity = $request->quantity;
-            $orderDetail->total_price = $product->price * $request->quantity;
-            $orderDetail->save();
-        } else {
-            // Jika produk sudah ada, update jumlah dan harga
-            $existingOrderDetail->quantity += $request->quantity;
-            $existingOrderDetail->total_price += $product->price * $request->quantity;
-            $existingOrderDetail->update();
-        }
-
-        // Update total harga pesanan
-        $newOrder->total_price += $product->price * $request->quantity;
-        $newOrder->update();
-
-        Alert::success('Product added to cart successfully', 'Success');
-        return redirect('pesan');
+        return redirect()->route('checkout')->with('success', 'Cart updated successfully!');
     }
 
-    public function viewCart()
+    public function removeFromCart($productId)
     {
-        $order = Order::where('user_id', Auth::user()->id)->where('status', 0)->first();
-        $orderDetails = [];
+        $pesanan_utama = Order::where('user_id', Auth::user()->id)
+            ->where('status', 0) // Pending orders only
+            ->firstOrFail();
 
-        if ($order) {
-            $orderDetails = OrderDetail::where('order_id', $order->id)->get();
+        // Find the product in the order details
+        $orderDetail = OrderItem::where('order_id', $pesanan_utama->id)
+            ->where('product_id', $productId)
+            ->first();
+
+        if ($orderDetail) {
+            // Remove the item from the order details
+            $orderDetail->delete();
+
+            // Update the order total after removal
+            $this->updateOrderTotal($pesanan_utama);
+
+            return redirect()->route('checkout')->with('success', 'Product removed from cart.');
         }
 
-        return view('pesan.cart', compact('order', 'orderDetails'));
+        return redirect()->route('checkout')->with('error', 'Product not found in cart.');
     }
 
-    public function deleteFromCart($id)
+    public function completeCheckout(Request $request)
     {
-        $orderDetail = OrderDetail::where('id', $id)->first();
-        $order = Order::where('id', $orderDetail->order_id)->first();
+        // Validate the address and other necessary fields
+        $validatedData = $request->validate([
+            'address' => 'required|string|max:255',
+        ]);
 
-        // Update total harga pesanan setelah penghapusan
-        $order->total_price -= $orderDetail->total_price;
-        $order->update();
+        $pesanan_utama = Order::where('user_id', Auth::user()->id)
+            ->where('status', 0) // Pending orders only
+            ->firstOrFail();
 
-        // Hapus item dari pesanan detail
-        $orderDetail->delete();
+        // Update the order with the validated address
+        $pesanan_utama->update([
+            'address' => $validatedData['address'],
+            'status' => 1, // Set the status to 'completed' or 'processed'
+        ]);
 
-        Alert::error('Item removed from cart', 'Deleted');
-        return redirect('pesan');
+        // Update the stock for all the products in the order
+        $cartItems = OrderItem::where('order_id', $pesanan_utama->id)->get();
+        foreach ($cartItems as $item) {
+            $product = $item->product;
+            $product->decrement('stock', $item->quantity);
+        }
+
+        return redirect()->route('order.history')->with('success', 'Checkout completed successfully.');
     }
 
-    public function confirmOrder(Request $request)
+    private function updateOrderTotal(Order $order)
     {
-        $user = Auth::user();
+        // Recalculate the total price for the order
+        $orderDetails = OrderItem::where('order_id', $order->id)->get();
+        $subtotal = $orderDetails->sum(function ($item) {
+            return $item->quantity * $item->price;
+        });
 
-        // Validasi data alamat
-        if (empty($user->address) || empty($user->city)) {
-            Alert::error('Please complete your address information.', 'Error');
-            return redirect('profile');
-        }
+        $shippingCost = 50000; // Fixed or dynamic shipping cost
+        $total = $subtotal + $shippingCost;
 
-        $order = Order::where('user_id', Auth::user()->id)->where('status', 0)->first();
-        if ($order) {
-            $order->status = 1; // Status 1 = pesanan dikonfirmasi
-            $order->province_id = $request->province_id;
-            $order->city = $request->city;
-            $order->address = $request->address;
-            $order->shipping_price = $request->shipping_price;
-            $order->notes = $request->notes;
-            $order->update();
-
-            // Update stok produk
-            $orderDetails = OrderDetail::where('order_id', $order->id)->get();
-            foreach ($orderDetails as $orderDetail) {
-                $product = Product::find($orderDetail->product_id);
-                $product->stock -= $orderDetail->quantity;
-                $product->update();
-            }
-
-            Alert::success('Order confirmed, please proceed to payment.', 'Success');
-        }
-
-        return redirect('order/history/'.$order->id);
+        // Update the total price of the order
+        $order->update([
+            'total_price' => $total,
+        ]);
     }
 }
