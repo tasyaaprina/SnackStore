@@ -156,6 +156,7 @@ public function checkout()
 
         return redirect()->route('checkout')->with('error', 'Product not found in cart.');
     }
+    
 
     public function completeCheckout(Request $request)
     {

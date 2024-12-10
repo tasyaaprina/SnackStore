@@ -21,14 +21,39 @@
                                 <th class="border-b py-2">Nama Produk</th>
                                 <th class="border-b py-2">Jumlah</th>
                                 <th class="border-b py-2">Total Harga</th>
+                                <th class="border-b py-2">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($cartItems as $item)
                                 <tr>
                                     <td class="border-b py-2">{{ $item->product->name }}</td>
-                                    <td class="border-b py-2">{{ $item->quantity }}</td>
-                                    <td class="border-b py-2">Rp{{ number_format($item->price, 0, ',', '.') }}</td>
+                                    <td class="border-b py-2">
+                                        <form action="{{ route('cart.update', $item->id) }}" method="POST">
+                                            @csrf
+                                            @method('PUT')
+                                            <input type="number" name="quantity" value="{{ $item->quantity }}" min="1" class="w-20 text-center" required>
+                                            <button type="submit" class="ml-2 inline-flex items-center px-3 py-1 bg-blue-500 text-white font-semibold text-xs rounded-lg hover:bg-blue-700">
+                                                <svg class="w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 13l-7 7-7-7" />
+                                                </svg>
+                                                Edit
+                                            </button>
+                                        </form>
+                                    </td>
+                                    <td class="border-b py-2">Rp{{ number_format($item->price * $item->quantity, 0, ',', '.') }}</td>
+                                    <td class="border-b py-2">
+                                        <form action="{{ route('cart.destroy', $item->id) }}" method="POST" class="inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-red-600 hover:text-red-800">
+                                                <svg class="w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                                Hapus
+                                            </button>
+                                        </form>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
