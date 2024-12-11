@@ -19,21 +19,20 @@
             </div>
             <!-- Settings Dropdown -->
             <div class="hidden sm:flex sm:items-center sm:ms-6">
-                <!-- Cart Icon -->
-                <div class="relative inline-flex items-center me-0">
-                    @php
-                        $pesanan_utama = \App\Models\Order::where('user_id', Auth::id())->where('status', 'new')->first();
-                        $notif = $pesanan_utama ? $pesanan_utama->items()->count() : 0;
-                    @endphp
-                    <a href="{{ route('cart.index') }}" class="relative text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
-                        <i class="fa fa-shopping-cart text-xl"></i>
-                        @if($notif > 0)
-                            <span class="absolute -top-1 -right-2 inline-block w-5 h-5 text-center text-xs font-semibold text-white bg-red-600 rounded-full">
-                                {{ $notif }}
-                            </span>
-                        @endif
-                    </a>
-                </div>
+                    <!-- Cart Icon -->
+                    <div class="relative inline-flex items-center me-2">
+                        @php
+                            $notif = \App\Models\Cart::where('user_id', Auth::id())->count();
+                        @endphp
+                        <a href="{{ route('cart.index') }}" class="relative text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                            <i class="fa fa-shopping-cart text-xl"></i>
+                            @if($notif > 0)
+                                <span class="absolute -top-1 -right-2 inline-block w-5 h-5 text-center text-xs font-semibold text-white bg-red-600 rounded-full">
+                                    {{ $notif }}
+                                </span>
+                            @endif
+                        </a>
+                    </div>
                 
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
