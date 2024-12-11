@@ -26,7 +26,7 @@ class Product extends Model
     // Relasi dengan model Category
     public function category()
     {
-        return $this->belongsTo(Category::class, 'category_id');
+        return $this->belongsTo(Category::class);
     }
 
     // Relasi dengan model OrderDetail (purchase details)
