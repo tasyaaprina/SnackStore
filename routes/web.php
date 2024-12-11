@@ -5,12 +5,11 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
+Route::get('/laravel', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', [HomeController::class, 'index'])
-    ->middleware(['auth', 'verified'])
+Route::get('/', [HomeController::class, 'index'])
     ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
