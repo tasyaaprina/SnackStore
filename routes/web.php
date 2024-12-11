@@ -8,13 +8,6 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use Illuminate\Support\Facades\Route;
 
-<<<<<<< HEAD
-Route::get('/laravel', function () {
-    return view('welcome');
-});
-
-Route::get('/', [HomeController::class, 'index'])
-=======
 // Halaman Utama
 Route::get('/', function () {
     return view('welcome');
@@ -23,7 +16,6 @@ Route::get('/', function () {
 // Dashboard
 Route::get('/dashboard', [HomeController::class, 'index'])
     ->middleware(['auth', 'verified'])
->>>>>>> f5bbe0c63d6cc939535a70c9268ebd97b8bc8d50
     ->name('dashboard');
 
 // Rute dengan middleware 'auth'
